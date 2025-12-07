@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
 from github_client import GitHubClient
-from notion_client import NotionClient
+from notion_service import NotionClient
 from models import TaskComparison, SyncStatus
 from config import settings
 import uvicorn
