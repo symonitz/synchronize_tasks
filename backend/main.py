@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime, timezone
 from github_client import GitHubClient
@@ -21,13 +21,21 @@ github_client = GitHubClient()
 notion_client = NotionClient() if settings.notion_token and settings.notion_database_id else None
 
 
+def verify_api_key(x_api_key: str = Header(None)):
+    """Verify API key if configured"""
+    if settings.api_key:
+        if not x_api_key or x_api_key != settings.api_key:
+            raise HTTPException(status_code=401, detail="Invalid or missing API key")
+    return x_api_key
+
+
 @app.get("/")
 def root():
     return {"status": "ok", "message": "Task Sync API"}
 
 
 @app.get("/api/sync")
-def sync_tasks():
+def sync_tasks(api_key: str = Depends(verify_api_key)):
     try:
         github_tasks = github_client.get_all_issues()
         notion_tasks = notion_client.get_all_tasks() if notion_client else []
@@ -66,7 +74,7 @@ def sync_tasks():
 
 
 @app.get("/api/tasks")
-def get_all_tasks():
+def get_all_tasks(api_key: str = Depends(verify_api_key)):
     try:
         github_tasks = github_client.get_all_issues()
         notion_tasks = notion_client.get_all_tasks() if notion_client else []
@@ -82,7 +90,7 @@ def get_all_tasks():
 
 
 @app.get("/api/tasks/{source}")
-def get_tasks_by_source(source: str):
+def get_tasks_by_source(source: str, api_key: str = Depends(verify_api_key)):
     try:
         if source == "github":
             tasks = github_client.get_all_issues()
@@ -104,7 +112,7 @@ def get_tasks_by_source(source: str):
 
 
 @app.get("/api/status")
-def get_sync_status():
+def get_sync_status(api_key: str = Depends(verify_api_key)):
     try:
         github_tasks = github_client.get_all_issues()
         notion_tasks = notion_client.get_all_tasks() if notion_client else []

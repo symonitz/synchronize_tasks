@@ -17,6 +17,8 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000,https://*.vercel.app"
 
+    api_key: Optional[str] = None
+
     class Config:
         env_file = ".env"
         case_sensitive = False
