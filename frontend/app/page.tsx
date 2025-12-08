@@ -11,6 +11,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "github" | "notion">("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
 
   useEffect(() => {
     async function loadData() {
@@ -45,11 +46,38 @@ export default function Home() {
   if (!data) return null;
 
   const getFilteredTasks = (): Task[] => {
-    if (filter === "all") return data.all_tasks;
-    return data.tasks_by_source[filter] || [];
+    let tasks: Task[] = [];
+    if (filter === "all") {
+      tasks = data.all_tasks;
+    } else {
+      tasks = data.tasks_by_source[filter] || [];
+    }
+
+    // Filter by assignee
+    if (assigneeFilter !== "all") {
+      if (assigneeFilter === "unassigned") {
+        tasks = tasks.filter(task => !task.assignee);
+      } else {
+        tasks = tasks.filter(task => task.assignee === assigneeFilter);
+      }
+    }
+
+    return tasks;
+  };
+
+  // Get unique assignees
+  const getAssignees = (): string[] => {
+    const assignees = new Set<string>();
+    data.all_tasks.forEach(task => {
+      if (task.assignee) {
+        assignees.add(task.assignee);
+      }
+    });
+    return Array.from(assignees).sort();
   };
 
   const filteredTasks = getFilteredTasks();
+  const assignees = getAssignees();
 
   return (
     <div className="min-h-screen p-6 max-w-7xl mx-auto">
@@ -60,7 +88,7 @@ export default function Home() {
 
       <SyncStatusCard status={data.sync_status} />
 
-      <div className="mb-6 flex gap-2">
+      <div className="mb-6 flex flex-wrap gap-2">
         <button
           onClick={() => setFilter("all")}
           className={`px-4 py-2 rounded-lg font-medium transition ${
@@ -91,6 +119,47 @@ export default function Home() {
         >
           Notion Only ({data.tasks_by_source.notion?.length || 0})
         </button>
+      </div>
+
+      <div className="mb-6">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Filter by Assignee:
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setAssigneeFilter("all")}
+            className={`px-4 py-2 rounded-lg font-medium transition ${
+              assigneeFilter === "all"
+                ? "bg-green-600 text-white"
+                : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+            }`}
+          >
+            All Assignees
+          </button>
+          <button
+            onClick={() => setAssigneeFilter("unassigned")}
+            className={`px-4 py-2 rounded-lg font-medium transition ${
+              assigneeFilter === "unassigned"
+                ? "bg-green-600 text-white"
+                : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+            }`}
+          >
+            Unassigned
+          </button>
+          {assignees.map((assignee) => (
+            <button
+              key={assignee}
+              onClick={() => setAssigneeFilter(assignee)}
+              className={`px-4 py-2 rounded-lg font-medium transition ${
+                assigneeFilter === assignee
+                  ? "bg-green-600 text-white"
+                  : "bg-white text-gray-700 hover:bg-gray-100 border border-gray-300"
+              }`}
+            >
+              {assignee}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
